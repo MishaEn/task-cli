@@ -8,7 +8,6 @@ use App\Task\Domain\Enum\TaskStatus;
 use App\Task\Domain\ValueObject\TaskDescription;
 use App\Task\Domain\ValueObject\TaskId;
 use DateTimeImmutable;
-use DomainException;
 
 final class Task
 {

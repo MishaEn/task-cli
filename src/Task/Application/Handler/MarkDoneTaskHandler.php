@@ -1,11 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Task\Application\Handler;
 
 use App\Task\Application\Command\MarkDoneTaskCommand;
 use App\Task\Domain\Repository\TaskRepositoryInterface;
 
-class MarkDoneTaskHandler
+final readonly class MarkDoneTaskHandler
 {
     public function __construct(
         private readonly TaskRepositoryInterface $repository,

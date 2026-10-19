@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types = 1);
+
 namespace App\Task\Interface\Console;
 
 use App\Task\Application\Command\MarkDoneTaskCommand;

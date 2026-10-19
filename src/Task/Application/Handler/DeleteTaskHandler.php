@@ -1,12 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Task\Application\Handler;
 
 use App\Task\Application\Command\DeleteTaskCommand;
 use App\Task\Domain\Repository\TaskRepositoryInterface;
 
-
-class DeleteTaskHandler
+final readonly class DeleteTaskHandler
 {
     public function __construct(
         private readonly TaskRepositoryInterface $repository,
