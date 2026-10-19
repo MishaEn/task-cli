@@ -7,22 +7,24 @@
         "php": ">=8.4",
         "ext-ctype": "*",
         "ext-iconv": "*",
+        "ext-mbstring": "*",
+        "symfony/clock": "^8.0",
         "symfony/console": "8.1.*",
         "symfony/dotenv": "8.1.*",
         "symfony/flex": "^2",
         "symfony/framework-bundle": "8.1.*",
+        "symfony/lock": "^8.0",
         "symfony/runtime": "8.1.*",
         "symfony/yaml": "8.1.*"
     },
     "require-dev": {
-        "phpstan/extension-installer": "^1.4",
-        "phpstan/phpstan": "^1.12",
-        "phpstan/phpstan-symfony": "^1.4"
+        "phpstan/phpstan": "^2.1.12",
+        "phpstan/phpstan-symfony": "^2.0.4",
+        "phpunit/phpunit": "^10.5.26"
     },
     "config": {
         "allow-plugins": {
             "php-http/discovery": true,
-            "phpstan/extension-installer": true,
             "symfony/flex": true,
             "symfony/runtime": true
         },
@@ -69,7 +71,7 @@
     "extra": {
         "symfony": {
             "allow-contrib": false,
-            "require": "8.1.*"
+            "require": "8.0.* || 8.1.*"
         }
     }
 }

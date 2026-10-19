@@ -1,13 +1,14 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace App\Task\Interface\Console;
 
-use App\Task\Application\Command\MarkInProgressTaskCommand;
 use App\Task\Application\Command\UpdateTaskCommand;
 use App\Task\Application\Handler\UpdateTaskHandler;
 use App\Task\Domain\ValueObject\TaskId;
+use DomainException;
+use RuntimeException;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -17,14 +18,13 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 #[AsCommand(
     name: 'task:update',
-    description: 'Update task',
+    description: 'Update task description',
 )]
-class UpdateTaskConsoleCommand extends Command
+final class UpdateTaskConsoleCommand extends Command
 {
     public function __construct(
         private readonly UpdateTaskHandler $handler,
-    )
-    {
+    ) {
         parent::__construct();
     }
 
@@ -33,30 +33,31 @@ class UpdateTaskConsoleCommand extends Command
         $this->addArgument(
             'id',
             InputArgument::REQUIRED,
-            'Task ID'
+            'Task ID',
         );
 
         $this->addArgument(
             'description',
             InputArgument::REQUIRED,
-            'Task description'
+            'Task description',
         );
     }
+
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
 
-        $id = TaskId::fromString($input->getArgument('id'));
-        $description = $input->getArgument('description');
-
         try {
+            $id = TaskId::fromString((string) $input->getArgument('id'));
+            $description = (string) $input->getArgument('description');
             ($this->handler)(new UpdateTaskCommand($id, $description));
-        } catch (\Throwable $e) {
+        } catch (DomainException|RuntimeException $e) {
             $io->error(sprintf('Failed to update task: %s', $e->getMessage()));
+
             return Command::FAILURE;
         }
 
-        $io->success(sprintf('Task updated: %s', $id->value()));
+        $io->success(sprintf('Task updated. ID: %s', $id->value()));
 
         return Command::SUCCESS;
     }

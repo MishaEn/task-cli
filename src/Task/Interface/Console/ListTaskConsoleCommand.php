@@ -6,7 +6,10 @@ namespace App\Task\Interface\Console;
 
 use App\Task\Application\Command\ListTaskCommand;
 use App\Task\Application\Handler\ListTaskHandler;
+use App\Task\Domain\Entity\Task;
 use App\Task\Domain\Enum\TaskStatus;
+use DomainException;
+use RuntimeException;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -15,15 +18,14 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 #[AsCommand(
-    name: 'task:lists',
+    name: 'task:list',
     description: 'Show list of tasks',
 )]
-class ListTaskConsoleCommand extends Command
+final class ListTaskConsoleCommand extends Command
 {
     public function __construct(
         private readonly ListTaskHandler $handler,
-    )
-    {
+    ) {
         parent::__construct();
     }
 
@@ -32,7 +34,7 @@ class ListTaskConsoleCommand extends Command
         $this->addArgument(
             'status',
             InputArgument::OPTIONAL,
-            'Task status'
+            'Task status (todo, in-progress, done)',
         );
     }
 
@@ -41,40 +43,49 @@ class ListTaskConsoleCommand extends Command
         $io = new SymfonyStyle($input, $output);
 
         $statusInput = $input->getArgument('status');
-
         $status = null;
 
         if ($statusInput !== null) {
-            $status = TaskStatus::tryFrom($statusInput);
+            $status = TaskStatus::tryFrom((string) $statusInput);
 
             if ($status === null) {
+                $allowed = array_map(
+                    static fn (TaskStatus $case): string => $case->value,
+                    TaskStatus::cases(),
+                );
+
                 $io->error(sprintf(
                     'Unknown status "%s". Allowed: %s.',
                     $statusInput,
-                    implode(', ', array_column(TaskStatus::cases(), 'value')),
+                    implode(', ', $allowed),
                 ));
+
                 return Command::FAILURE;
             }
         }
 
         try {
             $tasks = ($this->handler)(new ListTaskCommand($status));
-        } catch (\Throwable $e) {
+        } catch (DomainException|RuntimeException $e) {
             $io->error(sprintf('Failed to list tasks: %s', $e->getMessage()));
+
             return Command::FAILURE;
         }
 
+        $statusLabel = $status->value ?? 'any';
+
         if ($tasks === []) {
-            $io->warning(sprintf('No tasks found with status "%s".', $status->value));
+            $io->warning(sprintf('No tasks found with status "%s".', $statusLabel));
+
             return Command::SUCCESS;
         }
 
-        $io->title(sprintf('Tasks with status "%s"', $status->value));
+        $io->title(sprintf('Tasks with status "%s"', $statusLabel));
 
         $rows = array_map(
-            static fn($task): array => [
+            static fn (Task $task): array => [
                 $task->id()->value(),
-                $task->description(),
+                $task->description()->value(),
                 $task->status()->value,
                 $task->createdAt()->format('Y-m-d H:i'),
                 $task->updatedAt()->format('Y-m-d H:i'),

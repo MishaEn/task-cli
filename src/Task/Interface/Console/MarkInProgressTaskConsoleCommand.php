@@ -1,13 +1,14 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace App\Task\Interface\Console;
 
-use App\Task\Application\Command\MarkDoneTaskCommand;
 use App\Task\Application\Command\MarkInProgressTaskCommand;
 use App\Task\Application\Handler\MarkInProgressTaskHandler;
 use App\Task\Domain\ValueObject\TaskId;
+use DomainException;
+use RuntimeException;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -16,15 +17,14 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 #[AsCommand(
-    name: 'task:mark-is-progress',
-    description: 'Mark task as progress',
+    name: 'task:mark-in-progress',
+    description: 'Mark task as in progress',
 )]
-class MarkInProgressTaskConsoleCommand extends Command
+final class MarkInProgressTaskConsoleCommand extends Command
 {
     public function __construct(
         private readonly MarkInProgressTaskHandler $handler,
-    )
-    {
+    ) {
         parent::__construct();
     }
 
@@ -33,7 +33,7 @@ class MarkInProgressTaskConsoleCommand extends Command
         $this->addArgument(
             'id',
             InputArgument::REQUIRED,
-            'Task ID'
+            'Task ID',
         );
     }
 
@@ -41,16 +41,16 @@ class MarkInProgressTaskConsoleCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
 
-        $id = TaskId::fromString($input->getArgument('id'));
-
         try {
+            $id = TaskId::fromString((string) $input->getArgument('id'));
             ($this->handler)(new MarkInProgressTaskCommand($id));
-        } catch (\Throwable $e) {
-            $io->error(sprintf('Failed to start task: %s', $e->getMessage()));
+        } catch (DomainException|RuntimeException $e) {
+            $io->error(sprintf('Failed to move task to in-progress: %s', $e->getMessage()));
+
             return Command::FAILURE;
         }
 
-        $io->success(sprintf('Task start: %s', $id->value()));
+        $io->success(sprintf('Task moved to in-progress. ID: %s', $id->value()));
 
         return Command::SUCCESS;
     }

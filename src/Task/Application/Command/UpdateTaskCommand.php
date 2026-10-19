@@ -11,7 +11,6 @@ final readonly class UpdateTaskCommand
     public function __construct(
         public TaskId $id,
         public string $description,
-    )
-    {
+    ) {
     }
 }

@@ -1,14 +1,14 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace App\Task\Interface\Console;
 
-use App\Task\Application\Command\AddTaskCommand;
 use App\Task\Application\Command\DeleteTaskCommand;
-use App\Task\Application\Handler\AddTaskHandler;
 use App\Task\Application\Handler\DeleteTaskHandler;
 use App\Task\Domain\ValueObject\TaskId;
+use DomainException;
+use RuntimeException;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -20,12 +20,11 @@ use Symfony\Component\Console\Style\SymfonyStyle;
     name: 'task:delete',
     description: 'Delete task',
 )]
-class DeleteTaskConsoleCommand extends Command
+final class DeleteTaskConsoleCommand extends Command
 {
     public function __construct(
         private readonly DeleteTaskHandler $handler,
-    )
-    {
+    ) {
         parent::__construct();
     }
 
@@ -34,19 +33,20 @@ class DeleteTaskConsoleCommand extends Command
         $this->addArgument(
             'id',
             InputArgument::REQUIRED,
-            'Task ID'
+            'Task ID',
         );
     }
+
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
 
-        $id = TaskId::fromString($input->getArgument('id'));
-
         try {
+            $id = TaskId::fromString((string) $input->getArgument('id'));
             ($this->handler)(new DeleteTaskCommand($id));
-        } catch (\Throwable $e) {
+        } catch (DomainException|RuntimeException $e) {
             $io->error(sprintf('Failed to delete task: %s', $e->getMessage()));
+
             return Command::FAILURE;
         }
 

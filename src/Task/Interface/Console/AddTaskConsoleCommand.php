@@ -1,12 +1,13 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace App\Task\Interface\Console;
 
 use App\Task\Application\Command\AddTaskCommand;
 use App\Task\Application\Handler\AddTaskHandler;
-use App\Task\Domain\ValueObject\TaskDescription;
+use DomainException;
+use RuntimeException;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -18,12 +19,11 @@ use Symfony\Component\Console\Style\SymfonyStyle;
     name: 'task:add',
     description: 'Create a new task',
 )]
-class AddTaskConsoleCommand extends Command
+final class AddTaskConsoleCommand extends Command
 {
     public function __construct(
         private readonly AddTaskHandler $handler,
-    )
-    {
+    ) {
         parent::__construct();
     }
 
@@ -32,7 +32,7 @@ class AddTaskConsoleCommand extends Command
         $this->addArgument(
             'description',
             InputArgument::REQUIRED,
-            'Task description'
+            'Task description',
         );
     }
 
@@ -40,12 +40,12 @@ class AddTaskConsoleCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
 
-        $description = TaskDescription::fromString($input->getArgument('description'));
-
         try {
+            $description = (string) $input->getArgument('description');
             $taskId = ($this->handler)(new AddTaskCommand($description));
-        } catch (\Throwable $e) {
+        } catch (DomainException|RuntimeException $e) {
             $io->error(sprintf('Failed to create task: %s', $e->getMessage()));
+
             return Command::FAILURE;
         }
 

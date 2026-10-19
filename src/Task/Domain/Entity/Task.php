@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace App\Task\Domain\Entity;
 
@@ -8,18 +8,38 @@ use App\Task\Domain\Enum\TaskStatus;
 use App\Task\Domain\ValueObject\TaskDescription;
 use App\Task\Domain\ValueObject\TaskId;
 use DateTimeImmutable;
+use DomainException;
 
 final class Task
 {
-    public function __construct(
+    private function __construct(
         private readonly TaskId $id,
         private TaskDescription $description,
         private TaskStatus $status,
         private readonly DateTimeImmutable $createdAt,
         private DateTimeImmutable $updatedAt,
-    )
-    {
-        $this->assertDatesAreConsistent($createdAt, $updatedAt);
+    ) {
+        if ($updatedAt < $createdAt) {
+            throw new DomainException('Updated date cannot be earlier than created date.');
+        }
+    }
+
+    public static function create(
+        TaskId $id,
+        TaskDescription $description,
+        DateTimeImmutable $now,
+    ): self {
+        return new self($id, $description, TaskStatus::Todo, $now, $now);
+    }
+
+    public static function reconstitute(
+        TaskId $id,
+        TaskDescription $description,
+        TaskStatus $status,
+        DateTimeImmutable $createdAt,
+        DateTimeImmutable $updatedAt,
+    ): self {
+        return new self($id, $description, $status, $createdAt, $updatedAt);
     }
 
     public function id(): TaskId
@@ -47,65 +67,41 @@ final class Task
         return $this->updatedAt;
     }
 
-    public function updateDescription(string $description): void
+    public function updateDescription(TaskDescription $description, DateTimeImmutable $now): void
     {
-        $trimmed = trim($description);
-
-        if ($trimmed === $this->description) {
+        if ($description->equals($this->description)) {
             return;
         }
 
-        $this->description = new TaskDescription($trimmed);
-        $this->touch();
+        $this->description = $description;
+        $this->touch($now);
     }
 
-    public function startProgress(): void
+    public function startProgress(DateTimeImmutable $now): void
     {
         if ($this->status !== TaskStatus::Todo) {
-            throw new \DomainException(sprintf(
+            throw new DomainException(sprintf(
                 'Cannot start task in status "%s". Only "todo" can be started.',
                 $this->status->value,
             ));
         }
 
         $this->status = TaskStatus::InProgress;
-        $this->touch();
+        $this->touch($now);
     }
 
-    public function markAsDone(): void
+    public function markAsDone(DateTimeImmutable $now): void
     {
         if ($this->status === TaskStatus::Done) {
             return;
         }
 
-        if ($this->status === TaskStatus::InProgress || $this->status === TaskStatus::Todo) {
-            $this->status = TaskStatus::Done;
-            $this->touch();
-            return;
-        }
-
-        throw new \DomainException(sprintf(
-            'Cannot complete task in status "%s".',
-            $this->status->value,
-        ));
+        $this->status = TaskStatus::Done;
+        $this->touch($now);
     }
 
-    public static function add(TaskId $id, TaskDescription $description, TaskStatus $status, DateTimeImmutable $createdAt, DateTimeImmutable $updatedAt): self
+    private function touch(DateTimeImmutable $now): void
     {
-        return new self($id, $description, $status, $createdAt, $updatedAt);
-    }
-
-    private function touch(): void
-    {
-        $this->updatedAt = new \DateTimeImmutable();
-    }
-
-    private function assertDatesAreConsistent(
-        \DateTimeImmutable $createdAt,
-        \DateTimeImmutable $updatedAt,
-    ): void {
-        if ($updatedAt < $createdAt) {
-            throw new \DomainException('Updated date cannot be earlier than created date.');
-        }
+        $this->updatedAt = max($this->updatedAt, $this->createdAt, $now);
     }
 }

@@ -1,27 +1,38 @@
 <?php
 
-declare(ticks = 1);
+declare(strict_types=1);
 
 namespace App\Task\Domain\ValueObject;
 
+use DomainException;
+
 final readonly class TaskDescription
 {
-    public function __construct(
-        private string $value
-    )
+    private const int MAX_LENGTH = 255;
+
+    private string $value;
+
+    public function __construct(string $value)
     {
+        $value = trim($value);
+
         if ($value === '') {
-            throw new \DomainException('Task description cannot be empty.');
+            throw new DomainException('Task description cannot be empty.');
         }
 
-        if (mb_strlen($value) > 255) {
-            throw new \DomainException('Task description cannot exceed 255 characters.');
+        if (mb_strlen($value) > self::MAX_LENGTH) {
+            throw new DomainException(sprintf(
+                'Task description cannot exceed %d characters.',
+                self::MAX_LENGTH,
+            ));
         }
+
+        $this->value = $value;
     }
 
-    public function __toString(): string
+    public static function fromString(string $value): self
     {
-        return $this->value();
+        return new self($value);
     }
 
     public function value(): string
@@ -29,8 +40,13 @@ final readonly class TaskDescription
         return $this->value;
     }
 
-    public static function fromString(string $value): self
+    public function equals(self $other): bool
     {
-        return new self($value);
+        return $this->value === $other->value;
+    }
+
+    public function __toString(): string
+    {
+        return $this->value;
     }
 }
